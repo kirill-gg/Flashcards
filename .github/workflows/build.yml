@@ -10,12 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Найти проект
+      - name: Распаковать и найти проект
         run: |
-          F=$(find . -name settings.gradle.kts -not -path './.git/*' | head -1)
+          mkdir -p unpacked
+          for z in *.zip; do
+            [ -f "$z" ] && unzip -q -o "$z" -d unpacked
+          done
+          F=$(find unpacked -name settings.gradle.kts | head -1)
           if [ -z "$F" ]; then
-            echo "settings.gradle.kts не найден. Содержимое репозитория:"
-            find . -not -path './.git/*' | head -60
+            echo "settings.gradle.kts не найден. Содержимое:"
+            find unpacked | head -60
             exit 1
           fi
           echo "Проект: $F"
@@ -40,4 +44,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          files: Flashcards.apk
+          files: Flashcards.apk 
