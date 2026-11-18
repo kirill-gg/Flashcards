@@ -9,17 +9,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: unzip -q Flashcards.zip
+
+      - name: Найти проект
+        run: |
+          F=$(find . -name settings.gradle.kts -not -path './.git/*' | head -1)
+          if [ -z "$F" ]; then
+            echo "settings.gradle.kts не найден. Содержимое репозитория:"
+            find . -not -path './.git/*' | head -60
+            exit 1
+          fi
+          echo "Проект: $F"
+          echo "PROJECT_DIR=$(dirname "$F")" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - run: gradle assembleDebug --no-daemon
-        working-directory: Flashcards
+
+      - name: Сборка
+        run: gradle assembleDebug --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
+
+      - name: Копировать APK
+        run: cp "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" "$GITHUB_WORKSPACE/Flashcards.apk"
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          files: Flashcards/app/build/outputs/apk/debug/app-debug.apk
+          files: Flashcards.apk
